@@ -1,0 +1,16 @@
+{
+  "name": "oreci",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://mika-me@bitbucket.org/mika-me/oreci.git"
+  },
+  "author": "mikkame",
+  "license": "MIT",
+  "homepage": "https://bitbucket.org/mika-me/oreci#readme"
+}
