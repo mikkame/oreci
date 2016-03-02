@@ -1,20 +1,17 @@
 var exec = require('child_process').execSync;
+require('dotenv').config({path: '.oreci'});
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 var request = require('request');
 var glob = require("glob")
-var gitlab= 'https://gitlab2.prsvr.net'
-var pk = 'tKDzhD8sd6uWFhiphKsi'
 var project_id =null;
 var project_path  = "";
 var head ="";
 
-exec("ruby -v ",function(error, stdout, stderr){
-    console.log(error, stdout, stderr);
-});
+
 var stdout = exec("git rev-parse HEAD")
 head = stdout.toString().replace("\n","");
 request({
-    url:gitlab+"/api/v3/projects/all?order_by=last_activity_at",
+    url:process.env.GITLAB_HOST+"/api/v3/projects/all?order_by=last_activity_at",
     headers:{
         "PRIVATE-TOKEN":pk
         }
@@ -23,14 +20,9 @@ request({
             var stdout = exec("git config --get remote.origin.url");
             if(project["ssh_url_to_repo"] == stdout.toString().replace("\n","")){
                 project_id = project["id"];
-                project_path = project["path_with_namespace"];
-                console.log("phpcs");
                 phpCodeSniffer();
-                console.log("rubocop");
                 ruboCop();
-                console.log("reek");
                 reek();
-                console.log("railsBestPractices");
                 railsBestPractices();
 
             }
@@ -41,7 +33,11 @@ request({
 function phpCodeSniffer(){
     glob("**/*.php",function(err,files){
         files.forEach(function(file){
-            var stdout = exec("php phpcs.phar "+file+" --extensions=php");
+            try{
+                var stdout = exec("phpcs "+file+" --extensions=php").toString();
+            }catch(e){
+                stdout = e.stdout.toString();
+            }
             var results = stdout.split("\n");
             results.forEach(function(line){
                 if(line.match(/\[(.*?)\]/)){
@@ -54,8 +50,13 @@ function phpCodeSniffer(){
 }
 function ruboCop(){
     glob("**/*.rb",function(err,files){
+        var stdout;
         files.forEach(function(file){
-            var stdout = exec("rubocop "+file);
+            try{
+                stdout = exec("rubocop "+file).toString();
+            }catch(e){
+                stdout = e.stdout.toString();
+            }
             var results = stdout.split("\n");
             results.forEach(function(line){
                 if(line.match(/\.rb:[0-9]+:/)){
@@ -70,9 +71,13 @@ function ruboCop(){
 function railsBestPractices(){
     glob("**/*.rb",function(err,files){
         files.forEach(function(file){
-            var stdout = exec("rails_best_practices ");
+            try{
+                var stdout = exec("rails_best_practices ").toString();
+            }catch(e){
+                stdout = e.stdout.toString();
+            }
             var results = stdout.split("\n");
-            console.log(results)
+
             results.forEach(function(line){
                 if(line.match(/\.rb:[0-9]+ -/)){
                     var parsed = line.match(/\.rb:([0-9]+) - (.*)/);
@@ -85,13 +90,15 @@ function railsBestPractices(){
 }
 function reek(){
     glob("**/*.rb",function(err,files){
-        async.each(files,function(file){
-            var stdout = exec("reek  "+file);
+        files.forEach(function(file){
+            try{
+                var stdout = exec("reek  "+file).toString();
+            }catch(e){
+                stdout = e.stdout.toString();
+            }
             var results = stdout.split("\n");
-            console.log(results)
             results.forEach(function(line){
                 if(line.match(/\[(.*?)\]/)){
-                    console.log();
                     line.match(/\[(.*?)\]/)[1].match(/([0-9]+)/g).forEach(function(num){
                         gitLabComment(file,num,line);
                     })
@@ -104,17 +111,15 @@ function reek(){
 function gitLabComment(file,line,comment){
     var stdout = exec("git blame --abbrev=100 "+file);
     if(!stdout.toString().match(new RegExp(".*( "+line+"\\))"))){
-        console.log(file,line,comment);
         return;
     }
-
     var hash = stdout.toString().match(new RegExp(".*( "+line+"\\))"))[0].match(/^(.{40,41}) /)[1]
     hash = hash.replace("^","");
     request({
         method:"POST",
-        url:gitlab+"/api/v3/projects/"+project_id+"/repository/commits/"+hash+"/comments",
+        url:process.env.GITLAB_HOST+"/api/v3/projects/"+project_id+"/repository/commits/"+hash+"/comments",
         headers:{
-            "PRIVATE-TOKEN":pk
+            "PRIVATE-TOKEN":process.env.GITLAB_KEY
         },
         form:{
             note:comment,
