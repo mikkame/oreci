@@ -12,7 +12,7 @@ var cd = process.cwd();
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 var rtg = url.parse(process.env.REDISTOGO_URL);
 var redis = require('redis').createClient(rtg.port, rtg.hostname);
-
+client.auth(rtg.auth.split(":")[1]);
 var env = {};
 
 function main(repository) {
