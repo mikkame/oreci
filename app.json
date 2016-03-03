@@ -1,0 +1,25 @@
+{
+  "name": "Small Sharp Tool",
+  "success_url": "/welcome",
+  "image": "heroku/ruby",
+  "addons": [
+    "redistogo"
+  ],
+  "env": {
+    "SECRET_TOKEN": {
+      "description": "A secret key for verifying the repository",
+      "generator": "secret"
+    }
+  },
+  "buildpacks": [
+    {
+     "url": "https://github.com/heroku/heroku-buildpack-ruby"
+    },
+    {
+     "url": "https://github.com/heroku/heroku-buildpack-node"
+    },
+    {
+     "url": "https://github.com/heroku/heroku-buildpack-php"
+    }
+  ]
+}
